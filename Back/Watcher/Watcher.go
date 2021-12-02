@@ -22,6 +22,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
+//JSON Request format
 type Webhook struct {
 	Id                       string        `json:"id"`
 	Forsale                  int           `json:"forsale"`
@@ -54,6 +55,7 @@ type Webhook struct {
 	} `json:"bridgeRemarks"`
 }
 
+//structure for loading settings
 type Settings struct {
 	AddrBridge_RMRK string `json:"AddrBridge_RMRK"`
 	AddrHub         string `json:"AddrHub"`
@@ -66,17 +68,25 @@ type Settings struct {
 
 var Setting Settings
 
+//Request Handler
 func processingData(Data Webhook, buff bytes.Buffer) {
+
+	//Connect with EVM
 	client, err := ethclient.Dial(Setting.RPC)
 	if err != nil {
 		log.Fatal("Error connecting: ", err)
 	}
 
+	//Convert the key to the desired format
 	privateKey, err := crypto.HexToECDSA(Setting.PrivateKey)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	//Generate pub key
 	publicKey := privateKey.Public()
+
+	//Convert pub key to the desired format
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
 		log.Fatal("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
@@ -84,30 +94,37 @@ func processingData(Data Webhook, buff bytes.Buffer) {
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 
+	//Get nonce
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	//Get gas price
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	//Creating an account
 	auth := bind.NewKeyedTransactor(privateKey)
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)     // in wei
 	auth.GasLimit = uint64(600000) // in units
 	auth.GasPrice = gasPrice
 
+	//Creating a contract image
 	address := common.HexToAddress(Setting.AddrHub)
 	main_hub, err := NewHub(address, client)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	//Get MOVR address from request
 	temp := strings.Split(Data.BridgeRemarks[0].Remark, "RMRK::BRIDGE::2.0.0::MOVR::")[1]
 	log.Println(temp)
+
+	//Fill order on movr contract (hub) (RMRK =>MOVR)
 	tx, err := main_hub.FillRMRKOrder(auth, common.HexToAddress(temp), Data.Id, Data.Metadata, Data.CollectionId)
 	if err != nil {
 		log.Fatal(err)
@@ -116,8 +133,11 @@ func processingData(Data Webhook, buff bytes.Buffer) {
 	log.Println("tx sent: ", tx.Hash().Hex())
 }
 
+
+//This function checks the validity of the request
 func checkReliability(w http.ResponseWriter, r *http.Request) (bytes.Buffer, bool) {
 
+	//Get body
 	buff := new(bytes.Buffer)
 	buff.ReadFrom(r.Body)
 
@@ -169,6 +189,7 @@ func main() {
 			return
 		}
 
+		//Parsing json request
 		var webhookData Webhook
 		err := json.Unmarshal(buff.Bytes(), &webhookData)
 		if err != nil {
@@ -195,6 +216,9 @@ func main() {
 			log.Println("metadata", webhookData.Metadata)
 			log.Println("children", webhookData.Children)
 			log.Println(">Filling Order on MOVR")
+
+			//Start goroutine for input
+			//Filling RMRK order (RMRK => MOVR)
 			go processingData(webhookData, buff)
 		}
 	})
