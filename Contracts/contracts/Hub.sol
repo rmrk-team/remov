@@ -1,20 +1,9 @@
-/*
------------Compiler Bug Summary performed by pragmaBugCheck (Written by @Rhynorater)-----------
-Current File Name: C:\Users\Nethny\Desktop\Bridge\bridge-contracts\pragmaBugCheck\HUB_v0.2.sol
-Detected Semantic Version: ^0.8.0
-Detected Possible Compiler Bugs:
-* medium - KeccakCaching
-* very low - SignedImmutables
-* very low - ABIDecodeTwoDimensionalArrayMemory
-* very low - UserDefinedValueTypesBug
------------Thanks for using pragmaBugCheck!-----------
-*/
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
 
-import "ERC721.sol";
-import "Ownable.sol";
-import "Counters.sol";
+import "./ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 //@author Nethny [TIIK]
 /*
@@ -155,6 +144,7 @@ contract Hub is ERC721, Ownable{
     function takeMoney()public {
         require(_lostMoney[msg.sender]>0, "You didn't lose any money!");
         payable(msg.sender).transfer(_lostMoney[msg.sender]);
+        _lostMoney[msg.sender] = 0;
     }
     
 	//Commission payment function.
@@ -162,7 +152,7 @@ contract Hub is ERC721, Ownable{
         _reciever.transfer(_deployPayment);
         _bank.transfer(_serverPayment);
         if(msg.value > _deployPayment + _serverPayment){
-            _lostMoney[msg.sender] = msg.value - _deployPayment + _serverPayment;
+            _lostMoney[msg.sender] = msg.value - (_deployPayment + _serverPayment);
         }
         return true;
     }
@@ -313,7 +303,7 @@ contract Hub is ERC721, Ownable{
         return _deployPayment;
     }
     
-    function getAddressReciever() public view returns (address){
+    function getAddressReceiver() public view returns (address){
         return _reciever;
     }
     
@@ -321,6 +311,9 @@ contract Hub is ERC721, Ownable{
         return _bank;
     }
     
+    function paymentsOn() public view returns (bool){
+        return _paymentsOn;
+    }
     //Set Functions
 	//Function for setting up commissions
     function changeServerPayments(uint New) onlyOwner public{
