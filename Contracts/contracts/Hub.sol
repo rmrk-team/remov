@@ -18,17 +18,27 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 	
 	Warning: ERC721 has been changed!
 */
-contract Hub is ERC721, Ownable{
+contract Hub is ERC721, Ownable {
     using Counters for Counters.Counter;
-    constructor() ERC721("Dublicate_RMRK","DRMRK"){}
-    
+
+    constructor() ERC721("Dublicate_RMRK", "DRMRK") {}
+
     Counters.Counter private _tokenIdCounter;
 
     // Optional mapping for token URIs
     mapping(uint256 => string) private _tokenURIs;
 
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), "ERC721URIStorage: URI query for nonexistent token");
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        virtual
+        override
+        returns (string memory)
+    {
+        require(
+            _exists(tokenId),
+            "ERC721URIStorage: URI query for nonexistent token"
+        );
 
         string memory _tokenURI = _tokenURIs[tokenId];
         string memory base = _baseURI();
@@ -45,8 +55,14 @@ contract Hub is ERC721, Ownable{
         return super.tokenURI(tokenId);
     }
 
-    function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal virtual {
-        require(_exists(tokenId), "ERC721URIStorage: URI set of nonexistent token");
+    function _setTokenURI(uint256 tokenId, string memory _tokenURI)
+        internal
+        virtual
+    {
+        require(
+            _exists(tokenId),
+            "ERC721URIStorage: URI set of nonexistent token"
+        );
         _tokenURIs[tokenId] = _tokenURI;
     }
 
@@ -57,107 +73,111 @@ contract Hub is ERC721, Ownable{
             delete _tokenURIs[tokenId];
         }
     }
-    
+
     //ERC721
     //-----------------
     //Custom
-    
-    struct Child{
+
+    struct Child {
         string collectionId;
         string equippedId;
         string ID;
         string metadata;
         string metadata_rarity;
     }
-    
-    struct Order{
-        string  UID;
+
+    struct Order {
+        string UID;
         string Address;
     }
-    
+
     //Events:
-	//Emitted when order for 'UID' is created from 'Client' on RMRK.
+    //Emitted when order for 'UID' is created from 'Client' on RMRK.
     event createdRMRKOrder(address Client, string UID);
-	
-	//Emitted when order for 'UID' is created from 'Client' on MOVR.
+
+    //Emitted when order for 'UID' is created from 'Client' on MOVR.
     event createdMOVROrder(string Client, string UID);
-	
-	//Emitted when order for 'UID' is filled 'Client' on MOVR.
+
+    //Emitted when order for 'UID' is filled 'Client' on MOVR.
     event filledRMRKOrder(address Client, string UID);
-	
-	//Emitted when order for 'UID' is filled 'Client' on RMRK.
+
+    //Emitted when order for 'UID' is filled 'Client' on RMRK.
     event filledMOVROrder(string Client, string UID);
-    
+
     //Variables:
-	//Mapping from UID to ID.
-    mapping (string => uint) private _matchingU;
-	
-	//Mapping from ID to UID.
-    mapping (uint => string) private _matchingI;
-	
-	//Mapping from address Client to mapping from UID to bool.
-	//This storage opened orders on MOVR.
-    mapping (address => mapping(string => bool)) private _ordersRMRK;
-	
-	//Mapping from Address on Kusama chain to bool.
-	//This storage opened orders on RMRK.
-    mapping (string => bool)private _storageRMRK;
-	
-	//Mapping drom address Client to uint.
-	//This is a repository of overpaid money for a refund.
-    mapping (address => uint)private _lostMoney;
-	
-	//Mapping from UID to mapping from Number Child to Child.
-    mapping (string => mapping(uint => Child))private _storageMeta;
-    
-	//Mapping from address to mapping from UID to URI.
+    //Mapping from UID to ID.
+    mapping(string => uint256) private _matchingU;
+
+    //Mapping from ID to UID.
+    mapping(uint256 => string) private _matchingI;
+
+    //Mapping from address Client to mapping from UID to bool.
+    //This storage opened orders on MOVR.
+    mapping(address => mapping(string => bool)) private _ordersRMRK;
+
+    //Mapping from Address on Kusama chain to bool.
+    //This storage opened orders on RMRK.
+    mapping(string => bool) private _storageRMRK;
+
+    //Mapping drom address Client to uint.
+    //This is a repository of overpaid money for a refund.
+    mapping(address => uint256) private _lostMoney;
+
+    //Mapping from UID to mapping from Number Child to Child.
+    mapping(string => mapping(uint256 => Child)) private _storageMeta;
+
+    //Mapping from address to mapping from UID to URI.
     //Storage completed orders, but not expected ones.
-    mapping (address => mapping(string => string)) private _pendingOrderRMKR;
-    
-	//Stores nft transfer orders requiring processing (from MOVR to RMRK).
+    mapping(address => mapping(string => string)) private _pendingOrderRMKR;
+
+    //Stores nft transfer orders requiring processing (from MOVR to RMRK).
     Order[] private _ordersMOVR;
-    
-	//The amount of the commission for the payment of the server side.
-    uint private _serverPayment = 0;
-	
-	//The amount of the commission for payment of the transaction.
-    uint private _deployPayment = 0;
-	
-	//The address that creates the nft.
-    address payable private _reciever = payable(0x43A2cCed6d1B7ba37173336AA794bAAB2cB1f830);
-	
-	//Address for receiving payments.
-    address payable private _bank = payable(0xEc92783237998d58d3323880A5515A2a444Ed3E6);
-    
+
+    //The amount of the commission for the payment of the server side.
+    uint256 private _serverPayment = 0;
+
+    //The amount of the commission for payment of the transaction.
+    uint256 private _deployPayment = 0;
+
+    //The address that creates the nft.
+    address payable private _reciever =
+        payable(0x43A2cCed6d1B7ba37173336AA794bAAB2cB1f830);
+
+    //Address for receiving payments.
+    address payable private _bank =
+        payable(0xEc92783237998d58d3323880A5515A2a444Ed3E6);
+
     //Flags
-	//Enables and disables NFT transfer payment.
-    bool private _paymentsOn = false; 
-    
+    //Enables and disables NFT transfer payment.
+    bool private _paymentsOn = false;
+
     //Functions:
-    
-	//Returns overpayments for the calling address.
-    function myLostMoney()public view returns(uint){
+
+    //Returns overpayments for the calling address.
+    function myLostMoney() public view returns (uint256) {
         return _lostMoney[msg.sender];
     }
-    
-	//Allows you to collect overpayments of the calling address.
-    function takeMoney()public {
-        require(_lostMoney[msg.sender]>0, "You didn't lose any money!");
+
+    //Allows you to collect overpayments of the calling address.
+    function takeMoney() public {
+        require(_lostMoney[msg.sender] > 0, "You didn't lose any money!");
         payable(msg.sender).transfer(_lostMoney[msg.sender]);
         _lostMoney[msg.sender] = 0;
     }
-    
-	//Commission payment function.
-    function _pay()private returns (bool result){
+
+    //Commission payment function.
+    function _pay() private returns (bool result) {
         _reciever.transfer(_deployPayment);
         _bank.transfer(_serverPayment);
-        if(msg.value > _deployPayment + _serverPayment){
-            _lostMoney[msg.sender] = msg.value - (_deployPayment + _serverPayment);
+        if (msg.value > _deployPayment + _serverPayment) {
+            _lostMoney[msg.sender] =
+                msg.value -
+                (_deployPayment + _serverPayment);
         }
         return true;
     }
-    
-	/*
+
+    /*
 	Creates an order for the transfer of NFT from RMRK to MOVR.
 	
 	Requirements:
@@ -165,40 +185,42 @@ contract Hub is ERC721, Ownable{
 	UID - NFT ID RMRK;
 	*/
     function createRMRKOrder(address Client, string memory UID) public payable {
-        if(_paymentsOn){
+        if (_paymentsOn) {
             require(msg.value >= _serverPayment + _deployPayment);
             _pay();
         }
         require(bytes(UID).length != 0);
         require(Client != address(0));
-        
+
         //Check pending Order
-        if(bytes(_pendingOrderRMKR[Client][UID]).length > 0){
-            uint ID = _tokenIdCounter.current();
+        if (bytes(_pendingOrderRMKR[Client][UID]).length > 0) {
+            uint256 ID = _tokenIdCounter.current();
             _safeMint(Client, ID);
             _tokenIdCounter.increment();
-            
+
             _matchingU[UID] = ID;
             _matchingI[ID] = UID;
             _setTokenURI(ID, _pendingOrderRMKR[Client][UID]);
             _pendingOrderRMKR[Client][UID] = "";
-            
-        }else{
+        } else {
             _ordersRMRK[Client][UID] = true;
         }
-        
-        emit createdRMRKOrder(Client,UID);
+
+        emit createdRMRKOrder(Client, UID);
     }
-    
-	/*
+
+    /*
 	Creates an order for the transfer of NFT from MOVR to RMRK.
 	
 	Requirements:
 	Client - The recipient's address in the Kusama chain;
 	UID - NFT ID RMRK;
 	*/
-    function createMOVROrder(string memory Client, string memory UID)public payable{
-        if(_paymentsOn){
+    function createMOVROrder(string memory Client, string memory UID)
+        public
+        payable
+    {
+        if (_paymentsOn) {
             require(msg.value >= _serverPayment + _deployPayment);
             _pay();
         }
@@ -206,17 +228,17 @@ contract Hub is ERC721, Ownable{
         require(bytes(Client).length != 0);
         require(msg.sender == ownerOf(_matchingU[UID]));
         require(_storageRMRK[UID]);
-        
+
         _burn(_matchingU[UID]);
-        
+
         Order memory order;
         order.UID = UID;
         order.Address = Client;
         _ordersMOVR.push(order);
-        emit createdMOVROrder(Client,UID);
+        emit createdMOVROrder(Client, UID);
     }
-    
-	/*
+
+    /*
 	Closes the order (RMRK => MOVR)
 	If the NFT is expected on the MOVR side, then a duplicate of the NFT is created on the MOVR side and transferred to the waiting client
 	Otherwise, a duplicate is created on the MOVR side and is recorded in marked as a pending order
@@ -227,37 +249,42 @@ contract Hub is ERC721, Ownable{
 	URI - Link to metadata;
 	data - Array of nested nfts
 	*/
-    function fillRMRKOrder(address Client, string memory UID, string memory URI, Child[] memory data) onlyOwner public{
+    function fillRMRKOrder(
+        address Client,
+        string memory UID,
+        string memory URI,
+        Child[] memory data
+    ) public onlyOwner {
         require(bytes(URI).length != 0);
         require(Client != address(0), "Dont fill 0 address!");
-        
-        if(_ordersRMRK[Client][UID]){
-            uint ID = _tokenIdCounter.current();
+
+        if (_ordersRMRK[Client][UID]) {
+            uint256 ID = _tokenIdCounter.current();
             _safeMint(Client, ID);
             _tokenIdCounter.increment();
-            
+
             _matchingU[UID] = ID;
             _matchingI[ID] = UID;
-            _setTokenURI(ID,URI);
+            _setTokenURI(ID, URI);
             _storageRMRK[UID] = true;
             _ordersRMRK[Client][UID] = false;
-            for(uint i = 0; i < data.length; i = i + 1){
-                _storageMeta[UID][i]=data[i];
+            for (uint256 i = 0; i < data.length; i = i + 1) {
+                _storageMeta[UID][i] = data[i];
             }
-            
-            emit filledRMRKOrder(Client,UID);
-        }else{
+
+            emit filledRMRKOrder(Client, UID);
+        } else {
             _storageRMRK[UID] = true;
-            _pendingOrderRMKR[Client][UID]=URI;
-            for(uint i = 0; i < data.length; i = i + 1){
-                _storageMeta[UID][i]=data[i];
+            _pendingOrderRMKR[Client][UID] = URI;
+            for (uint256 i = 0; i < data.length; i = i + 1) {
+                _storageMeta[UID][i] = data[i];
             }
-            
-            emit filledRMRKOrder(Client,UID);
+
+            emit filledRMRKOrder(Client, UID);
         }
     }
-    
-	/*
+
+    /*
 	Closes the orders (MOVR => RMRK)
 	
 	! Call only after orders are executed by the server side !
@@ -265,74 +292,73 @@ contract Hub is ERC721, Ownable{
 	Requirements:
 	Count - Count number of executed orders;
 	*/
-    function fillMOVROrders(uint Count) onlyOwner public payable{
-        for(uint i=0;i<Count;i= i+1){
+    function fillMOVROrders(uint256 Count) public payable onlyOwner {
+        for (uint256 i = 0; i < Count; i = i + 1) {
             _ordersMOVR.pop();
         }
     }
-    
+
     //Get Functions
-	//The functions return contract variables to display the contract status
-    function getUID(uint ID)view public returns(string memory){
+    //The functions return contract variables to display the contract status
+    function getUID(uint256 ID) public view returns (string memory) {
         return _matchingI[ID];
     }
-    
-    function getCurrentSupply()view public returns(uint){
+
+    function getCurrentSupply() public view returns (uint256) {
         return _tokenIdCounter.current();
     }
-    
-    function getMOVROrders() view public returns (Order[] memory){
+
+    function getMOVROrders() public view returns (Order[] memory) {
         return _ordersMOVR;
     }
-    
-    
-    function getMeta(uint ID, uint i)public view returns (Child memory){
+
+    function getMeta(uint256 ID, uint256 i) public view returns (Child memory) {
         return _storageMeta[_matchingI[ID]][i];
     }
-    
-    function getID(string memory UID)public view returns (uint){
+
+    function getID(string memory UID) public view returns (uint256) {
         return _matchingU[UID];
     }
-    
-    
-    function getServerPayments() public view returns (uint){
+
+    function getServerPayments() public view returns (uint256) {
         return _serverPayment;
     }
-    
-    function getDeployPayments() public view returns (uint){
+
+    function getDeployPayments() public view returns (uint256) {
         return _deployPayment;
     }
-    
-    function getAddressReceiver() public view returns (address){
+
+    function getAddressReceiver() public view returns (address) {
         return _reciever;
     }
-    
-    function getAddressBank() public view returns (address){
+
+    function getAddressBank() public view returns (address) {
         return _bank;
     }
-    
-    function paymentsOn() public view returns (bool){
+
+    function paymentsOn() public view returns (bool) {
         return _paymentsOn;
     }
+
     //Set Functions
-	//Function for setting up commissions
-    function changeServerPayments(uint New) onlyOwner public{
+    //Function for setting up commissions
+    function changeServerPayments(uint256 New) public onlyOwner {
         _serverPayment = New;
     }
-    
-    function changeDeployPayments(uint New) onlyOwner public{
+
+    function changeDeployPayments(uint256 New) public onlyOwner {
         _deployPayment = New;
     }
-    
-    function changeAddressReciever(address New) onlyOwner public{
+
+    function changeAddressReciever(address New) public onlyOwner {
         _reciever = payable(New);
     }
-    
-    function changeAddressBank(address New) onlyOwner public{
+
+    function changeAddressBank(address New) public onlyOwner {
         _bank = payable(New);
     }
-    
-    function switchFee(bool New)onlyOwner public{
+
+    function switchFee(bool New) public onlyOwner {
         _paymentsOn = New;
     }
 }
