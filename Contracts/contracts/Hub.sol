@@ -165,10 +165,16 @@ contract Hub is ERC721, Ownable {
     function takeMoney() public {
         require(_lostMoney[msg.sender] > 0, "You didn't lose any money!");
         uint _amount = _lostMoney[msg.sender];
-        _lostMoney[msg.sender] = 0;
+
+        require(!lock, "Reentered function.");
+        lock = true;
 
         (bool success, ) = msg.sender.call{value: _amount}("");
         require(success, "Transfer failed.");
+
+        lock = false;
+
+        _lostMoney[msg.sender] = 0;
     }
 
     //Commission payment function.
