@@ -7,15 +7,15 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 
 //@author Nethny [TIIK]
 /*
-	This contract allows you to transfer NFT RMRK 
-	to the MOVR network, assigning to the specified 
-	owner specified in the RMRK messages 
+	This contract allows you to transfer NFT RMRK
+	to the MOVR network, assigning to the specified
+	owner specified in the RMRK messages
 	in the Kusama network.
-	This contract does not implement the full 
-	functionality of the RMRK NFT, but allows 
-	you to transfer ownership rights to NFT, 
+	This contract does not implement the full
+	functionality of the RMRK NFT, but allows
+	you to transfer ownership rights to NFT,
 	which allows them to be used in the MOVR ecosystem
-	
+
 	Warning: ERC721 has been changed!
 */
 contract Hub is ERC721, Ownable {
@@ -151,6 +151,9 @@ contract Hub is ERC721, Ownable {
     //Enables and disables NFT transfer payment.
     bool private _paymentsOn = false;
 
+    //lock variable for reentrancy checks.
+    bool private lock = false;
+
     //Functions:
 
     //Returns overpayments for the calling address.
@@ -161,14 +164,27 @@ contract Hub is ERC721, Ownable {
     //Allows you to collect overpayments of the calling address.
     function takeMoney() public {
         require(_lostMoney[msg.sender] > 0, "You didn't lose any money!");
-        payable(msg.sender).transfer(_lostMoney[msg.sender]);
+        uint _amount = _lostMoney[msg.sender];
         _lostMoney[msg.sender] = 0;
+
+        (bool success, ) = msg.sender.call{value: _amount}("");
+        require(success, "Transfer failed.");
     }
 
     //Commission payment function.
     function _pay() private returns (bool result) {
-        _reciever.transfer(_deployPayment);
-        _bank.transfer(_serverPayment);
+        bool success;
+
+        require(!lock, "Reentered function.");
+        lock = true;
+
+        (success, ) = _reciever.call{value: _deployPayment}("");
+        require(success, "Transfer failed.");
+        (success, ) = _bank.call{value: _serverPayment}("");
+        require(success, "Transfer failed.");
+
+        lock = false;
+
         if (msg.value > _deployPayment + _serverPayment) {
             _lostMoney[msg.sender] =
                 msg.value -
@@ -179,7 +195,7 @@ contract Hub is ERC721, Ownable {
 
     /*
 	Creates an order for the transfer of NFT from RMRK to MOVR.
-	
+
 	Requirements:
 	Client - The recipient's address in the MOVR network;
 	UID - NFT ID RMRK;
@@ -211,7 +227,7 @@ contract Hub is ERC721, Ownable {
 
     /*
 	Creates an order for the transfer of NFT from MOVR to RMRK.
-	
+
 	Requirements:
 	Client - The recipient's address in the Kusama chain;
 	UID - NFT ID RMRK;
@@ -242,7 +258,7 @@ contract Hub is ERC721, Ownable {
 	Closes the order (RMRK => MOVR)
 	If the NFT is expected on the MOVR side, then a duplicate of the NFT is created on the MOVR side and transferred to the waiting client
 	Otherwise, a duplicate is created on the MOVR side and is recorded in marked as a pending order
-	
+
 	Requirements:
 	Client - The recipient's address in the Kusama chain;
 	UID - NFT ID RMRK;
@@ -286,9 +302,9 @@ contract Hub is ERC721, Ownable {
 
     /*
 	Closes the orders (MOVR => RMRK)
-	
+
 	! Call only after orders are executed by the server side !
-	
+
 	Requirements:
 	Count - Count number of executed orders;
 	*/
