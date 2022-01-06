@@ -21,7 +21,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 contract Hub is ERC721, Ownable {
     using Counters for Counters.Counter;
 
-    constructor() ERC721("Dublicate_RMRK", "DRMRK") {}
+    constructor() ERC721("Duplicate_RMRK", "DRMRK") {}
 
     Counters.Counter private _tokenIdCounter;
 
