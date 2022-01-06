@@ -163,7 +163,7 @@ contract Hub is ERC721, Ownable {
     }
 
     //Allows you to collect overpayments of the calling address.
-    function takeMoney() public nonReentrant() {
+    function takeMoney() public nonReentrant {
         require(_lostMoney[msg.sender] > 0, "You didn't lose any money!");
         uint _amount = _lostMoney[msg.sender];
         _lostMoney[msg.sender] = 0;
@@ -173,7 +173,7 @@ contract Hub is ERC721, Ownable {
     }
 
     //Commission payment function.
-    function _pay() private nonReentrant() returns (bool result) {
+    function _pay() private nonReentrant returns (bool result) {
         bool success;
 
         if (msg.value > _deployPayment + _serverPayment) {
