@@ -140,11 +140,11 @@ contract Hub is ERC721, Ownable {
     uint256 private _deployPayment = 0;
 
     //The address that creates the nft.
-    address payable private _reciever =
+    address private _reciever =
         payable(0x43A2cCed6d1B7ba37173336AA794bAAB2cB1f830);
 
     //Address for receiving payments.
-    address payable private _bank =
+    address private _bank =
         payable(0xEc92783237998d58d3323880A5515A2a444Ed3E6);
 
     //Flags
