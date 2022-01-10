@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "./ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 //@author Nethny [TIIK]
 /*
@@ -140,11 +141,11 @@ contract Hub is ERC721, Ownable {
     uint256 private _deployPayment = 0;
 
     //The address that creates the nft.
-    address payable private _reciever =
+    address private _reciever =
         payable(0x43A2cCed6d1B7ba37173336AA794bAAB2cB1f830);
 
     //Address for receiving payments.
-    address payable private _bank =
+    address private _bank =
         payable(0xEc92783237998d58d3323880A5515A2a444Ed3E6);
 
     //Flags
@@ -162,7 +163,7 @@ contract Hub is ERC721, Ownable {
     }
 
     //Allows you to collect overpayments of the calling address.
-    function takeMoney() public {
+    function takeMoney() public nonReentrant {
         require(_lostMoney[msg.sender] > 0, "You didn't lose any money!");
         uint _amount = _lostMoney[msg.sender];
         _lostMoney[msg.sender] = 0;
@@ -172,25 +173,20 @@ contract Hub is ERC721, Ownable {
     }
 
     //Commission payment function.
-    function _pay() private returns (bool result) {
+    function _pay() private nonReentrant returns (bool result) {
         bool success;
-
-        require(!lock, "Reentered function.");
-        lock = true;
-
-        (success, ) = _reciever.call{value: _deployPayment}("");
-        require(success, "Transfer failed.");
-        (success, ) = _bank.call{value: _serverPayment}("");
-        require(success, "Transfer failed.");
-
-        lock = false;
 
         if (msg.value > _deployPayment + _serverPayment) {
             _lostMoney[msg.sender] =
                 msg.value -
                 (_deployPayment + _serverPayment);
         }
-        return true;
+
+        (success, ) = _bank.call{value: _serverPayment}("");
+        require(success, "Transfer failed.");
+
+        (success, ) = _reciever.call{value: _deployPayment}("");
+        require(success, "Transfer failed.");
     }
 
     /*
